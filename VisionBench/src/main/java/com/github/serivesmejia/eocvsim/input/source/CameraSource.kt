@@ -19,6 +19,7 @@ import org.opencv.imgproc.Imgproc
 import org.wpilib.util.PixelFormat
 import org.wpilib.vision.camera.CvSink
 import org.wpilib.vision.camera.UsbCamera
+import org.wpilib.vision.camera.VideoException
 import org.wpilib.vision.camera.VideoMode
 import javax.swing.filechooser.FileFilter
 
@@ -143,7 +144,16 @@ class CameraSource : InputSource, KoinComponent {
             UsbCamera("$cameraPortIndex", cameraPortIndex)
         }
 
-        camera!!.videoMode = videoMode ?: camera!!.videoMode
+        val desiredMode = videoMode
+        if (desiredMode != null && desiredMode != camera!!.videoMode) {
+            try {
+                camera!!.videoMode = desiredMode
+            } catch (e: VideoException) {
+                // some cameras (notably on macOS) fail to accept an explicit mode set even when
+                // it matches their currently active mode; fall back to whatever mode is already active
+                logger.warn("Failed to set video mode $desiredMode, keeping current mode ${camera!!.videoMode}: ${e.message}")
+            }
+        }
 
         logger.info("Camera started: ${matchedInfo?.name ?: webcamName.ifEmpty { "Camera $cameraPortIndex" }} ${camera!!.videoMode?.stringify()}")
 

@@ -197,7 +197,15 @@ class CreateCameraSource : KoinComponent {
         try {
             val cam = UsbCamera(info.name, info.dev)
 
-            modes = cam.enumerateVideoModes()
+            var enumeratedModes = cam.enumerateVideoModes()
+
+            // some cameras (notably on macOS) fail to report their full mode list;
+            // fall back to the camera's currently active mode so the dialog isn't left empty
+            if (enumeratedModes.isEmpty()) {
+                enumeratedModes = arrayOf(cam.videoMode)
+            }
+
+            modes = enumeratedModes
                 .distinctBy {
                     "${it.width}x${it.height}_${it.fps}_${it.pixelFormat}"
                 }
